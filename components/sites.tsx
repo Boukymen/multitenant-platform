@@ -3,27 +3,50 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import SiteCard from "./site-card";
 import Image from "next/image";
+import {useEffect, useState} from "react";
 
-export default async function Sites({ limit }: { limit?: number }) {
-  const session = await getSession();
+export default function Sites({ limit }: { limit?: number }) {
+  const session: any = getSession();
   if (!session) {
     redirect("/login");
   }
-  const sites = await prisma.site.findMany({
-    where: {
-      user: {
-        id: session.user.id as string,
-      },
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-    ...(limit ? { take: limit } : {}),
-  });
+    const [sites, setSites] = useState([]);
+    const getSites = () => {
+        fetch('http://localhost:3000/api/sites', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-tenant-id': session.user.id as string
+            }
+        })
+            .then(res => res.json())
+            .then(res => {
+            setSites(res)
+            })
+    }
+
+  useEffect(() => {
+      getSites()
+     return () => {
+        setSites([])
+     }
+  }, []);
+
+  // const sites = await prisma.site.findMany({
+  //   where: {
+  //     user: {
+  //       id: session.user.id as string,
+  //     },
+  //   },
+  //   orderBy: {
+  //     createdAt: "asc",
+  //   },
+  //   ...(limit ? { take: limit } : {}),
+  // });
 
   return sites.length > 0 ? (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {sites.map((site) => (
+      {sites.map((site: any ) => (
         <SiteCard key={site.id} data={site} />
       ))}
     </div>

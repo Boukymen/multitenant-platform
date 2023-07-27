@@ -1,37 +1,55 @@
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import prisma from "@/lib/prisma";
 import PostCard from "./post-card";
 import Image from "next/image";
+import {useEffect, useState} from "react";
 
-export default async function Posts({
+export default function Posts({
   siteId,
   limit,
 }: {
   siteId?: string;
   limit?: number;
 }) {
-  const session = await getSession();
+  const session: any = getSession();
   if (!session?.user) {
     redirect("/login");
   }
-  const posts = await prisma.post.findMany({
-    where: {
-      userId: session.user.id as string,
-      ...(siteId ? { siteId } : {}),
-    },
-    orderBy: {
-      updatedAt: "desc",
-    },
-    include: {
-      site: true,
-    },
-    ...(limit ? { take: limit } : {}),
-  });
+   const getPosts = () => {
+    fetch(`http://localhost:3000/api/posts?limit=${limit}&siteId=${siteId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-tenant-id': session.user.id as string
+        },
+    })
+      .then(res => res.json())
+      .then(res => {
+        setPosts(res)
+      })
+   }
+  const [posts, setPosts] = useState([]);
+
+    useEffect(() => {
+        getPosts()
+    },[]);
+  // const posts = await prisma.post.findMany({
+  //   where: {
+  //     userId: session.user.id as string,
+  //     ...(siteId ? { siteId } : {}),
+  //   },
+  //   orderBy: {
+  //     updatedAt: "desc",
+  //   },
+  //   include: {
+  //     site: true,
+  //   },
+  //   ...(limit ? { take: limit } : {}),
+  // });
 
   return posts.length > 0 ? (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {posts.map((post) => (
+      {posts.map((post: any) => (
         <PostCard key={post.id} data={post} />
       ))}
     </div>
